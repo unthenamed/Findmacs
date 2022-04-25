@@ -13,5 +13,5 @@ fi
 git commit -m "$msg"
 
 # Push atau puload ke Github
-git push -M origin main
+git branch -M main
 git push origin main
