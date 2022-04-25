@@ -1,0 +1,60 @@
+#!/bin/bash
+# =========================================================================== #
+#           FILE:  hackaptive.sh                                              #
+#          USAGE:  sudo ./hackaptive.sh                                       #
+#        LICENSE:  WTFPL v2                                                   #
+# =========================================================================== #
+
+
+# Check for running as root.
+function root() {
+        if ! [ $(id -u) = 0 ]; then
+         echo "The script need to be run as root." >&2
+         exit 0
+        fi
+}
+
+function  iden() {
+save="/bin/raw.txt"
+status="FINDMACS"
+jumlah="$(cat "$save" | grep -c ':')"
+}
+
+interface="$(ip -o -4 route show to default | awk '/dev/ {print $5}')"
+wifissid="$(iw dev "$interface" link | awk '/SSID/ {print $NF}')"
+
+
+
+function status() {
+clear
+echo "                       "$status"                        "
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+echo "Interface         :" "$interface"
+echo "Wifi SSID         :" "$wifissid"
+echo "Mac Tersimpan     :" "$jumlah"
+echo "Save to file	  :" "$save"
+echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+}
+
+
+function finding() {
+
+
+	sort "$save" >> null && rm "$save"
+	uniq -i null "$save" && rm null
+}
+
+
+# Main and Looping
+function main() {
+	while :
+	do
+		iden
+		status
+		sudo ./findmacs "$interface" | awk '{print $1}' >> "$save"
+		finding
+        done
+}
+
+root
+main
